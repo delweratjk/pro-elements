@@ -299,18 +299,20 @@ class Table_Of_Contents extends Base_Widget {
 
 		foreach ( $breakpoints as $breakpoint_key => $breakpoint ) {
 			// This feature is meant for mobile screens.
-			if ( 'widescreen' === $breakpoint_key || 'laptop' === $breakpoint_key ) {
+			if ( 'widescreen' === $breakpoint_key ) {
 				continue;
 			}
 
 			$minimized_on_options[ $breakpoint_key ] = sprintf(
-				/* translators: 1: `<` character, 2: Breakpoint value. */
+				/* translators: 1: Breakpoint label, 2: `<` character, 3: Breakpoint value. */
 				esc_html__( '%1$s (%2$s %3$dpx)', 'elementor-pro' ),
 				$breakpoint->get_label(),
 				'<',
 				$breakpoint->get_value()
 			);
 		}
+
+		$minimized_on_options['desktop'] = esc_html__( 'Desktop (or smaller)', 'elementor-pro' );
 
 		$this->add_control(
 			'minimized_on',

@@ -7,7 +7,9 @@ use ElementorPro\Core\Connect;
 use Elementor\Core\Responsive\Files\Frontend as FrontendFile;
 use Elementor\Utils;
 use ElementorPro\Core\Editor\Editor;
+use ElementorPro\Core\Integrations\Integrations_Manager;
 use ElementorPro\Core\Modules_Manager;
+use ElementorPro\Core\Notifications\Notifications_Manager;
 use ElementorPro\Core\Preview\Preview;
 use ElementorPro\Core\Updater\Updater;
 use ElementorPro\Core\Upgrade\Manager as UpgradeManager;
@@ -61,6 +63,16 @@ class Plugin {
 	 * @var License\Admin
 	 */
 	public $license_admin;
+
+	/**
+	 * @var \ElementorPro\Core\Integrations\Integrations_Manager
+	 */
+	public $integrations;
+
+	/**
+	 * @var \ElementorPro\Core\Notifications\Notifications_Manager
+	 */
+	public $notifications;
 
 	private $classes_aliases = [
 		'ElementorPro\Modules\PanelPostsControl\Module' => 'ElementorPro\Modules\QueryControl\Module',
@@ -211,23 +223,41 @@ class Plugin {
 			wp_enqueue_script( 'pro-preloaded-elements-handlers' );
 		}
 
+		$assets_url = ELEMENTOR_PRO_ASSETS_URL;
+
+		/**
+		 * Elementor Pro assets URL.
+		 *
+		 * Filters the assets URL used by Elementor Pro.
+		 *
+		 * By default Elementor Pro assets URL is set by the ELEMENTOR_PRO_ASSETS_URL
+		 * constant. This hook allows developers to change this URL.
+		 *
+		 * @param string $assets_url Elementor Pro assets URL.
+		 */
+		$assets_url = apply_filters( 'elementor_pro/frontend/assets_url', $assets_url );
+
 		$locale_settings = [
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce' => wp_create_nonce( 'elementor-pro-frontend' ),
 			'urls' => [
-				'assets' => apply_filters( 'elementor_pro/frontend/assets_url', ELEMENTOR_PRO_ASSETS_URL ),
+				'assets' => $assets_url,
 				'rest' => get_rest_url(),
 			],
 		];
 
 		/**
-		 * Localize frontend settings.
+		 * Localized frontend settings.
 		 *
-		 * Filters the frontend localized settings.
+		 * Filters the localized settings used in the frontend as JavaScript variables.
+		 *
+		 * By default Elementor Pro passes some frontend settings to be consumed as JavaScript
+		 * variables. This hook allows developers to add extra settings values to be consumed
+		 * using JavaScript in the frontend.
 		 *
 		 * @since 1.0.0
 		 *
-		 * @param array $locale_settings Localized settings.
+		 * @param array $locale_settings Localized frontend settings.
 		 */
 		$locale_settings = apply_filters( 'elementor_pro/frontend/localize_settings', $locale_settings );
 
@@ -334,8 +364,8 @@ class Plugin {
 		/**
 		 * Elementor Pro init.
 		 *
-		 * Fires on Elementor Pro init, after Elementor has finished loading but
-		 * before any headers are sent.
+		 * Fires on Elementor Pro initiation, after Elementor has finished loading
+		 * but before any headers are sent.
 		 *
 		 * @since 1.0.0
 		 */
@@ -384,7 +414,7 @@ class Plugin {
 		add_action( 'elementor/frontend/before_enqueue_scripts', [ $this, 'enqueue_frontend_scripts' ] );
 		add_action( 'elementor/frontend/after_enqueue_styles', [ $this, 'enqueue_styles' ] );
 
-		add_filter( 'elementor/core/responsive/get_stylesheet_templates', [ $this, 'get_responsive_stylesheet_templates' ] );
+		add_filter( 'elementor/core/breakpoints/get_stylesheet_template', [ $this, 'get_responsive_stylesheet_templates' ] );
 		add_action( 'elementor/document/save_version', [ $this, 'on_document_save_version' ] );
 
 		add_filter( 'elementor/editor/localize_settings', function ( $settings ) {
@@ -441,6 +471,51 @@ class Plugin {
 		$this->preview = new Preview();
 
 		$this->app = new App();
+
+		$this->license_admin = new License\Admin();
+
+		if ( is_user_logged_in() ) {
+			$this->integrations = new Integrations_Manager(); // TODO: This one is safe to move out of the condition.
+
+			$this->notifications = new Notifications_Manager();
+			require_once __DIR__ . '/updater/updater.php';
+			$config = array(
+				'slug'               => 'pro-elements.php',
+				'plugin_basename'    => ELEMENTOR_PRO_PLUGIN_BASE,
+				'proper_folder_name' => 'pro-elements',
+				'api_url'            => 'https://api.github.com/repos/proelements/proelements',
+				'raw_url'            => 'https://raw.githubusercontent.com/proelements/proelements/master',
+				'github_url'         => 'https://github.com/proelements/proelements',
+				'zip_url'            => 'https://github.com/proelements/proelements/archive/v{release_version}.zip',
+				'sslverify'          => true,
+				'requires'           => '5.0',
+				'tested'             => '5.4.2',
+				'readme'             => 'README.md',
+				'access_token'       => '',
+			);
+
+		if ( is_admin() ) {
+			$this->admin = new Admin();
+
+			$this->license_admin->register_actions();
+
+			require_once __DIR__ . '/updater/updater.php';
+			$config = array(
+				'plugin_basename'    => ELEMENTOR_PRO_PLUGIN_BASE,
+				'proper_folder_name' => 'pro-elements',
+				'api_url'            => 'https://api.github.com/repos/proelements/proelements',
+				'raw_url'            => 'https://raw.githubusercontent.com/proelements/proelements/master',
+				'zip_url'            => 'https://github.com/proelements/proelements/archive/v{release_version}.zip',
+				'sslverify'          => true,
+				'requires'           => '5.0',
+				'tested'             => '5.4.2',
+				'readme'             => 'README.md',
+				'access_token'       => '',
+			);
+		}
+
+			new Updater( $config );
+		}
 	}
 
 	private function get_assets_suffix() {
