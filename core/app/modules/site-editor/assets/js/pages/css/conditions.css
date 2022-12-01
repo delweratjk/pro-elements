@@ -1,0 +1,18 @@
+/* Error: Undefined variable.
+ *    ,
+ * 16 | $e-site-editor-conditions-row-controls-radius: $eps-radius;
+ *    |                                                ^^^^^^^^^^^
+ *    '
+ *   conditions-api.scss 16:48  @import
+ *   conditions.scss 1:9        root stylesheet */
+
+body::before {
+  font-family: "Source Code Pro", "SF Mono", Monaco, Inconsolata, "Fira Mono",
+      "Droid Sans Mono", monospace, monospace;
+  white-space: pre;
+  display: block;
+  padding: 1em;
+  margin-bottom: 1em;
+  border-bottom: 2px solid black;
+  content: "Error: Undefined variable.\a    \2577 \a 16 \2502  $e-site-editor-conditions-row-controls-radius: $eps-radius;\a    \2502                                                 ^^^^^^^^^^^\a    \2575 \a   conditions-api.scss 16:48  @import\a   conditions.scss 1:9        root stylesheet";
+}
